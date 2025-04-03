@@ -23,28 +23,30 @@ const PORT = process.env.PORT || 3000;
 
 const avatarStorage = multer.diskStorage({
     destination:(req, file, cd) => {
-        cd(null, `uploads/${req.body.user}/avatar`)
+        cd(null, path.join(`uploads`, `${req.body.user}`, `avatar`))
     },
     filename:(req, file, cd) => {
-        const files = fs.readdirSync(`uploads/${req.body.user}/avatar`);
+        const files = fs.readdirSync(path.join(`uploads`, `${req.body.user}`, `avatar`));
         if(files.length > 0) {
             const maxValue = files.reduce((max, current) => (current > max ? current : max), files[0]);
-            cd(null, `${maxValue}.png`)
+            cd(null,  `${maxValue}` + path.extname(file.originalname))
+        } else {
+            cd(null, `${0}` + path.extname(file.originalname))
         }
-        cd(null, `${0}.png`)
     }
 });
 const postStorage = multer.diskStorage({
     destination:(req, file, cd) => {
-        cd(null, `uploads/${req.body.user}/posts`)
+        cd(null, path.join(`uploads`, `${req.body.user}`, `posts`))
     },
     filename:(req, file, cd) => {
-        const files = fs.readdirSync(`uploads/${req.body.user}/posts`);
+        const files = fs.readdirSync(path.join(`uploads`, `${req.body.user}`, `posts`));
         if(files.length > 0) {
             const maxValue = files.reduce((max, current) => (current > max ? current : max), files[0]);
-            cd(null, `${maxValue}.png}`)
+            cd(null, `${maxValue}` + path.extname(file.originalname))
+        } else {
+            cd(null, `${0}` + path.extname(file.originalname))
         }
-        cd(null, `${0}.png`)
     }
 })
 
@@ -242,9 +244,20 @@ app.post("/api/create_post", [postUpload.array("photo"), check_access], (req, re
         }
     }
 });
-app.get("/api/get_post_img/:user/:id", check_access, (req, res) => {
-    const {user, id} = req.params;
-    const uploadPath = path.join("uploads", user, "posts", `${id}.png`);
+app.get("/api/get_post_img/:user/:photo", check_access, (req, res) => {
+    const {user, photo} = req.params;
+    const uploadPath = path.join("uploads", user, "posts", `${photo}`);
+    if(fs.existsSync(uploadPath)) {
+        res.status(200).sendFile(uploadPath);
+    } else {
+        res.status(404).json({
+            message:"file not found"
+        });
+    }
+});
+app.get("/api/get_avatar_img/:user/:photo", check_access, (req, res) => {
+    const {user, photo} = req.params;
+    const uploadPath = path.join("uploads", user, "avatar", `${photo}`);
     if(fs.existsSync(uploadPath)) {
         res.status(200).sendFile(uploadPath);
     } else {
