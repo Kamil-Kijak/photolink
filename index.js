@@ -15,7 +15,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 require("dotenv").config();
-
 app.use(express.json());
 app.use(cookieParser())
 
@@ -53,6 +52,7 @@ const postStorage = multer.diskStorage({
 const postUpload = multer({storage:postStorage});
 const avatarUpload = multer({storage:avatarStorage});
 
+
 const connection = mysql.createConnection({
     host:"localhost",
     user:"root",
@@ -78,6 +78,7 @@ const check_access = (req, res, next) => {
     if(!refreshToken || !accessToken) {
         res.status(403).json({
             success:false,
+            access:false,
             message:"Access denied! This resource is protected"
         });
         return;
@@ -101,6 +102,7 @@ const check_access = (req, res, next) => {
         } catch (err) {
             res.status(403).json({
                 success:false,
+                access:false,
                 message:"Access denied! This resource is protected"
             });
         }
@@ -118,11 +120,12 @@ io.on("connection", (socket) => {
             }
         }
     })
+
     socket.on("register", (userID) => {
         connectedSockets[userID] = socket;
         console.log(userID, " User connected");
     })
-})
+});
 
 
 app.post("/api/register_user", (req, res) => {
@@ -212,6 +215,14 @@ app.post("/api/login_user", (req, res) => {
             }
         })
     }
+})
+app.post("/api/logout", check_access, (req, res) => {
+    res.clearCookie("access_jwt");
+    res.clearCookie("refresh_jwt");
+    res.status(200).json({
+        success:true,
+        message:"logout"
+    })
 })
 app.post("/api/create_post", [postUpload.array("photo"), check_access], (req, res) => {
     if(req.files) {
