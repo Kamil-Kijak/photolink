@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Apr 03, 2025 at 03:54 PM
+-- Generation Time: Apr 05, 2025 at 08:49 PM
 -- Wersja serwera: 8.0.39
 -- Wersja PHP: 8.2.26
 
@@ -127,7 +127,8 @@ CREATE TABLE `users` (
   `gender` enum('Male','Female','Other') COLLATE utf8mb4_general_ci DEFAULT 'Male',
   `profile_desc` varchar(200) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `profile_image` varchar(70) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `status` enum('online','offline') COLLATE utf8mb4_general_ci DEFAULT 'offline'
+  `status` enum('online','offline') COLLATE utf8mb4_general_ci DEFAULT 'offline',
+  `protected` tinyint(1) NOT NULL DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
