@@ -78,7 +78,7 @@ const check_access = (req, res, next) => {
     if(!refreshToken || !accessToken) {
         res.status(403).json({
             success:false,
-            access:false,
+            forbidden:true,
             message:"Access denied! This resource is protected"
         });
         return;
@@ -102,7 +102,7 @@ const check_access = (req, res, next) => {
         } catch (err) {
             res.status(403).json({
                 success:false,
-                access:false,
+                forbidden:true,
                 message:"Access denied! This resource is protected"
             });
         }
@@ -127,6 +127,7 @@ io.on("connection", (socket) => {
     })
 });
 
+// users -------------------------------------------------------
 
 app.post("/api/register_user", (req, res) => {
     const {name, surname, username, birthdate, country, email, password} = req.body;
@@ -140,7 +141,7 @@ app.post("/api/register_user", (req, res) => {
             if(error) throw error;
             if(result[0].count == 0) {
                 // create new user
-                connection.query("insert into users() values(NULL, ?, ?, ?, ?, ?, ?, ?, DEFAULT, NULL, NULL, DEFAULT)",
+                connection.query("insert into users() values(NULL, ?, ?, ?, ?, ?, ?, ?, DEFAULT, NULL, NULL, DEFAULT, DEFAULT)",
                      [name, surname, username, birthdate, country, email, crypto.createHash('md5').update(password).digest('hex')], (err, result) => {
                     if(err) throw err;
                     res.status(200).json({
@@ -223,7 +224,179 @@ app.post("/api/logout", check_access, (req, res) => {
         success:true,
         message:"logout"
     })
+});
+
+app.post("/api/delete_user", check_access, (req, res) => {
+    const {ID} = req.user;
+    connection.query("delete from users where ID=?", [ID], (err, result) => {
+        if (err) throw err;
+        res.status(200).json({
+            success:true,
+            message:"deleted"
+        })
+    })
 })
+
+app.get("/api/get_user", check_access, (req, res) => {
+    const {ID} = req.body;
+    if(!ID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID"
+        })
+    } else {
+        connection.query("select ID, name, surname, username, birthdate, country, gender, profile_desc, profile_image, status, protected from users where ID = ?", [ID], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        })
+    }
+})
+
+// followers ------------------------------------------------------
+
+app.get("/api/get_followers_count", check_access, (req, res) => {
+    connection.query("select count(ID) from followers where ID_user_follow = ?", [req.user], (err, result) => {
+        if(err) throw err;
+        res.status(200).json({
+            success:true,
+            message:"get success",
+            data:result
+        })
+    })
+});
+app.get("/api/get_following_count", check_access, (req, res) => {
+    connection.query("select count(ID) from followers where ID_user = ?", [req.user], (err, result) => {
+        if(err) throw err;
+        res.status(200).json({
+            success:true,
+            message:"get success",
+            data:result
+        })
+    })
+});
+
+app.get("/api/get_following", check_access, (req, res) => {
+    const {limit, ID} = req.body;
+    if(!limit || !ID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: limit, ID"
+        })
+    } else {
+        connection.query("select u.ID, u.username, u.status, u.profile_image from followers f inner join users u on u.ID=f.ID_user where f.ID_user = ? limit ?", [ID, limit], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        })
+    }
+});
+
+app.get("/api/get_followers", check_access, (req, res) => {
+    const {limit, ID} = req.body;
+    if(!ID || !limit) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID, limit"
+        })
+    } else {
+        connection.query("select u.ID, u.username, u.status, u.profile_image from followers f inner join users u on u.ID=f.ID_user where f.ID_user_follow = ? limit ?", [ID, limit], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        })
+    }
+});
+
+app.get("/api/get_follow", check_access, (req, res) => {
+    const {IDfollowed} = req.body;
+    if(!IDfollowed) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID"
+        })
+    } else {
+        connection.query("select count(ID) from followers where ID_user = ? and ID_user_follow = ?", [req.user, IDfollowed], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        })
+    }
+});
+
+app.post("/api/set_follow", check_access, (req, res) => {
+    const {IDfollowed} = req.body;
+    if(!IDfollowed) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID"
+        })
+    } else {
+        connection.query("select count(ID) as 'count' from followers where where ID_user = ? and ID_user_follow = ?", [req.user, IDfollowed], (err, result) => {
+            if(err) throw err;
+            if(result[0].count == 0) {
+                connection.query("insert into followers() values(NULL, ?, ?)", [req.user, IDfollowed], (err, result) => {
+                    if(err) throw err;
+                    res.status(200).json({
+                        success:true,
+                        message:"set follow success",
+                        data:result
+                    })
+                });
+            } else {
+                res.status(409).json({
+                    success:false,
+                    message:"inserted already"
+                })
+            }
+        });
+    }
+})
+
+app.post("/api/delete_follow", check_access, (req, res) => {
+    const {IDfollowed} = req.body;
+    if(!IDfollowed) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID"
+        })
+    } else {
+        connection.query("delete from followers where ID_user = ? and ID_user_follow = ?", [req.user, IDfollowed], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"deleted",
+                data:result
+            })
+        });
+    }
+});
+
+app.get("/api/get_active_followers", check_access, (req, res) => {
+    connection.query("select u.username, u.status, u.ID, u.profile_image from followers f inner join users u on u.ID=f.ID_user where u.ID_user_follow = ? order by RAND() limit 15", [req.user], (err, result) => {
+        if(err) throw err;
+        res.status(200).json({
+            success:true,
+            message:"get success",
+            data:result
+        })
+    })
+})
+
+// posts ------------------------------------------------------
+
 app.post("/api/create_post", [postUpload.array("photo"), check_access], (req, res) => {
     if(req.files) {
         res.status(400).json({
@@ -255,6 +428,228 @@ app.post("/api/create_post", [postUpload.array("photo"), check_access], (req, re
         }
     }
 });
+
+app.post("/api/delete_post", check_access, (req, res) => {
+    const {ID} = req.body;
+    if(!ID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID"
+        });
+    } else {
+        connection.query("delete from posts where ID=?", [ID], (err, result) => {
+            if (err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"deleted"
+            })
+        })
+    }
+});
+
+// comments ------------------------------------------------------
+
+app.post("/api/create_comment", check_access, (req, res) => {
+    const {postID, text_body} = req.body;
+    if(!postID || !text_body) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: postID, text_body"
+        });
+    } else {
+        const send_date = dateFormatter.format(new Date().toLocaleString(), 'yyyy-MM-dd HH:mm:ss');
+        connection.query("insert into comments() values(NULL, ?, ?, ?, ?, DEFAULT)", [req.user, postID, send_date, text_body], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"created new comment"
+            });
+        })
+    }
+});
+app.post("/api/delete_comment", check_access, (req, res) => {
+    const {ID} = req.body;
+    if(!ID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID"
+        });
+    } else {
+        connection.query("delete from comments where ID=?", [ID], (err, result) => {
+            if (err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"deleted"
+            })
+        })
+    }
+});
+app.post("/api/edit_comment", check_access, (req, res) => {
+    const {commentID, text_body} = req.body;
+    if(!commentID || !text_body) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: commentID, text_body"
+        });
+    } else {
+        const send_date = dateFormatter.format(new Date().toLocaleString(), 'yyyy-MM-dd HH:mm:ss');
+        connection.query("update comments set send_date = ?, text_body = ?, edited=1 where ID = ?", [send_date, text_body, commentID], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"edited comment"
+            });
+        })
+    }
+})
+
+app.get("/api/get_comment", check_access, (req, res) => {
+    const {commentID} = req.body
+    if(!commentID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: commentID"
+        });
+    } else {
+        connection.query("select text_body from comments where ID=?", [commentID], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            });
+        })
+    }
+});
+
+app.get("/api/get_comments", check_access, (req, res) => {
+    const {postID, limit} = req.body
+    if(!postID || !limit) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: postID, limit"
+        });
+    } else {
+        connection.query("select c.ID, c.send_date, c.text_body, c.edited, u.username, u.status, u.profile_image, u.ID as 'user_ID' from comments c inner join users u on u.ID=c.ID_user where c.ID_post order by c.send_date desc limit ?", [postID, limit], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            });
+        })
+    }
+});
+
+// like --------------------------------------------------------------
+
+app.post("/api/set_like", check_access, (req, res) => {
+    const {postID} = req.body;
+    if(!postID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: postID"
+        });
+    } else {
+        connection.query("select count(ID) as 'count' from likes where where ID_user = ? and ID_post = ?", [req.user, postID], (err, result) => {
+            if(err) throw err;
+            if(result[0].count == 0) {
+                connection.query("insert into likes() values(NULL, ?, ?)", [req.user, postID], (err, result) => {
+                    if(err) throw err;
+                    res.status(200).json({
+                        success:true,
+                        message:"created like",
+                    });
+                })
+            } else {
+                res.status(409).json({
+                    success:false,
+                    message:"inserted already"
+                })
+            }
+        })
+    }
+});
+
+app.post("/api/delete_like", check_access, (req, res) => {
+    const {postID} = req.body;
+    if(!postID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: postID"
+        });
+    } else {
+        connection.query("delete from likes where ID_post = ? and ID_user = ?", [postID, req.user], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"deleted like",
+            });
+        })
+    }
+});
+
+app.post("/api/get_like", check_access, (req, res) => {
+    const {IDpost} = req.body;
+    if(!IDpost) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: IDpost"
+        });
+    } else {
+        connection.query("select ID from likes where ID_post = ? and ID_user = ?", [IDpost, req.user], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            });
+        })
+    }
+});
+
+app.get("/api/get_likes_count", check_access, (req, res) => {
+    const {IDPost} = req.body;
+    if(!IDPost) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: IDpost"
+        });
+    } else {
+        connection.query("select count(ID) as 'count' from likes where ID_post = ?", [IDPost], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:false,
+                message:"get success",
+                data:result
+            });
+        })
+    }
+
+})
+
+app.get("/api/get_likes", check_access, (req, res) => {
+    const {IDPost, limit} = req.body;
+    if(!IDPost || !limit) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: IDpost, limit"
+        });
+    } else {
+        connection.query("select u.ID, u.username, u.profile_image, u.status from likes l inner join users u on u.ID=l.ID_user where ID_post = ? order by u.username limit ?", [IDPost, limit], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:false,
+                message:"get success",
+                data:result
+            });
+        })
+    }
+
+})
+
+// get a photo -------------------------------------------------------
+
 app.get("/api/get_post_img/:user/:photo", check_access, (req, res) => {
     const {user, photo} = req.params;
     const uploadPath = path.join("uploads", user, "posts", `${photo}`);
