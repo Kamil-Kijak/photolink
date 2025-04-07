@@ -226,7 +226,7 @@ app.post("/api/logout", check_access, (req, res) => {
     })
 });
 
-app.post("/api/delete_user", check_access, (req, res) => {
+app.delete("/api/delete_user", check_access, (req, res) => {
     const {ID} = req.user;
     connection.query("delete from users where ID=?", [ID], (err, result) => {
         if (err) throw err;
@@ -259,24 +259,40 @@ app.get("/api/get_user", check_access, (req, res) => {
 // followers ------------------------------------------------------
 
 app.get("/api/get_followers_count", check_access, (req, res) => {
-    connection.query("select count(ID) from followers where ID_user_follow = ?", [req.user], (err, result) => {
-        if(err) throw err;
-        res.status(200).json({
-            success:true,
-            message:"get success",
-            data:result
+    const {ID} = req.body;
+    if(!ID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID"
         })
-    })
+    } else {
+        connection.query("select count(ID) from followers where ID_user_follow = ?", [ID], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        });
+    }
 });
-app.get("/api/get_following_count", check_access, (req, res) => {
-    connection.query("select count(ID) from followers where ID_user = ?", [req.user], (err, result) => {
-        if(err) throw err;
-        res.status(200).json({
-            success:true,
-            message:"get success",
-            data:result
+app.get("/api/get_following_count", check_access, (req, res) => {c
+    const {ID} = req.body;
+    if(!ID) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID"
         })
-    })
+    } else {
+        connection.query("select count(ID) from followers where ID_user = ?", [ID], (err, result) => {
+            if(err) throw err;
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        })
+    }
 });
 
 app.get("/api/get_following", check_access, (req, res) => {
@@ -365,7 +381,7 @@ app.post("/api/set_follow", check_access, (req, res) => {
     }
 })
 
-app.post("/api/delete_follow", check_access, (req, res) => {
+app.delete("/api/delete_follow", check_access, (req, res) => {
     const {IDfollowed} = req.body;
     if(!IDfollowed) {
         res.status(400).json({
@@ -394,6 +410,50 @@ app.get("/api/get_active_followers", check_access, (req, res) => {
         })
     })
 })
+
+// notifications
+
+app.get("/api/get_notifications", check_access, (req, res) => {
+    const {limit} = req.body;
+    if(!limit) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: limit"
+        })
+    } else {
+        connection.query("select text_body, redirect, send_date, saw from notifications where ID_user = ? limit ?", [req.user, limit], (err, result) => {
+            if(err) throw err;
+
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        })
+    }
+});
+
+app.delete("/api/delete_all_notifications", check_access, (req, res) =>{
+    connection.query("delete from notyfications where ID_user = ?", [req.user], (err, result) => {
+        if(err) throw err;
+        res.status(200).json({
+            success:true,
+            message:"deleted",
+        })
+    })
+})
+
+app.delete("/api/delete_notification", check_access, (req, res) =>{
+    const {IDNotification} = req.body;
+    connection.query("delete from notyfications where ID = ?", [IDNotification], (err, result) => {
+        if(err) throw err;
+        res.status(200).json({
+            success:true,
+            message:"deleted",
+        })
+    })
+})
+
 
 // posts ------------------------------------------------------
 
@@ -429,7 +489,7 @@ app.post("/api/create_post", [postUpload.array("photo"), check_access], (req, re
     }
 });
 
-app.post("/api/delete_post", check_access, (req, res) => {
+app.delete("/api/delete_post", check_access, (req, res) => {
     const {ID} = req.body;
     if(!ID) {
         res.status(400).json({
@@ -467,7 +527,7 @@ app.post("/api/create_comment", check_access, (req, res) => {
         })
     }
 });
-app.post("/api/delete_comment", check_access, (req, res) => {
+app.delete("/api/delete_comment", check_access, (req, res) => {
     const {ID} = req.body;
     if(!ID) {
         res.status(400).json({
@@ -571,7 +631,7 @@ app.post("/api/set_like", check_access, (req, res) => {
     }
 });
 
-app.post("/api/delete_like", check_access, (req, res) => {
+app.delete("/api/delete_like", check_access, (req, res) => {
     const {postID} = req.body;
     if(!postID) {
         res.status(400).json({
