@@ -12,7 +12,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-        '/api': 'http://localhost:80' // Proxy dla API backendowego
+        '/api': 'http://localhost:3000'
     }
 }
 })

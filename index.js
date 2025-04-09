@@ -120,7 +120,28 @@ io.on("connection", (socket) => {
             }
         }
     })
-
+    socket.on("send-post", (userID, text_body) => {
+        connection.query("select ID_user from followers where ID_user_follow = ?", [userID], (err, result) => {
+            if(err) connectedSockets[userID].emit("send-post-return", {
+                success:false,
+                message:"error 500"
+            })
+            const send_date = dateFormatter.format(new Date().toLocaleString(), 'yyyy-MM-dd HH:mm:ss');
+            result.forEach((element) => {
+                connection.query("insert into notyfications() values(NULL, ?, ?, ?, ?, DEFAULT)", [element.ID_user, text_body, userID, send_date], (err, result) => {
+                    if(err) connectedSockets[userID].emit("send-post-return", {
+                        success:false,
+                        message:"error 500"
+                    })
+                    connectedSockets[element.ID_user].emit("notification", {
+                        text_body:text_body,
+                        redirect:userID,
+                        send_date:send_date
+                    });
+                })
+            })
+        })
+    })
     socket.on("register", (userID) => {
         connectedSockets[userID] = socket;
         console.log(userID, " User connected");
@@ -143,7 +164,7 @@ app.post("/api/register_user", (req, res) => {
                 // create new user
                 connection.query("insert into users() values(NULL, ?, ?, ?, ?, ?, ?, ?, DEFAULT, NULL, NULL, DEFAULT, DEFAULT)",
                      [name, surname, username, birthdate, country, email, crypto.createHash('md5').update(password).digest('hex')], (err, result) => {
-                    if(err) throw err;
+                    if(err) res.status(500).json({ success:false, message:"database error"}); 
                     res.status(200).json({
                         success:true,
                         message:"success"
@@ -168,7 +189,7 @@ app.post("/api/login_user", (req, res) => {
         })
     } else {
         connection.query("select count(ID) as 'count' from users where username = ? ", [username], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             if(result[0].count == 0) {
                 res.status(404).json({
                     success:false,
@@ -177,7 +198,7 @@ app.post("/api/login_user", (req, res) => {
             } else {
                 connection.query("select ID from users where username = ? and password = ? ",
                      [username, crypto.createHash('md5').update(password).digest('hex')], (err, result) => {
-                        if(err) throw err;
+                        if(err) res.status(500).json({ success:false, message:"database error"}); 
                         if(result.length == 0) {
                             res.status(403).json({
                                 success:false,
@@ -246,7 +267,98 @@ app.get("/api/get_user", check_access, (req, res) => {
         })
     } else {
         connection.query("select ID, name, surname, username, birthdate, country, gender, profile_desc, profile_image, status, protected from users where ID = ?", [ID], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        })
+    }
+});
+
+app.post("/api/upload_avatar", [avatarUpload.single("photo"), check_access], (req, res) => {
+    if(req.file) {
+        res.status(400).json({
+            success:false,
+            message:"photo not uploaded"
+        });
+    } else {
+        const file = req.file.filename;
+        connection.query("update users set profile_image = ? where ID = ?", [file, req.user], (err, result) =>{
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"updated",
+            })
+        })
+    }
+})
+
+app.post("/api/update_protected", check_access, (req, res) => {
+    const {protected} = req.body;
+    if(!protected) {
+        res.status(400).send({
+             success:false,
+            message:"not enough data: protected"
+        })
+    } else {
+        connection.query("update users set protected = ? where ID = ?", [protected, req.user], (req, res) => {
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"updated",
+            })
+        })
+    }
+})
+app.post("/api/update_desc", check_access, (req, res) => {
+    const {desc} = req.body;
+    if(!desc) {
+        res.status(400).send({
+             success:false,
+            message:"not enough data: desc"
+        })
+    } else {
+        connection.query("update users set protected = ? where ID = ?", [desc, req.user], (req, res) => {
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"updated",
+            })
+        })
+    }
+})
+app.post("/api/update_personal_data", check_access, (req, res) => {
+    const {name, surname, birthdate, country, gender} = req.body;
+    if(!name || !surname || !birthdate || !country || !gender) {
+        res.status(400).send({
+             success:false,
+            message:"not enough data: name, surname, birthdate, country, gender"
+        })
+    } else {
+        connection.query("update users set name = ?, surname = ?, birthdate = ?, country = ?, gender = ? where ID = ?", [name, surname, birthdate, country, gender, req.user], (req, res) => {
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"updated",
+            })
+        })
+    }
+})
+
+app.get("/api/get_searched_users", check_access, (req, res) => {
+    const {search, limit} = req.body;
+    if(!search || !limit) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: search, limit"
+        });
+    } else {
+        connection.query("select u.ID u.username, u.name, u.surname, u.profile_image, u.status, u.gender from users u where u.username like ? or u.name like ? or u.surname like ? limit ?", [
+            '%' + search + '%', '%' + search + '%', '%' + search + '%', limit
+        ], (err, result) => {
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -267,7 +379,7 @@ app.get("/api/get_followers_count", check_access, (req, res) => {
         })
     } else {
         connection.query("select count(ID) from followers where ID_user_follow = ?", [ID], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -285,7 +397,7 @@ app.get("/api/get_following_count", check_access, (req, res) => {c
         })
     } else {
         connection.query("select count(ID) from followers where ID_user = ?", [ID], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -304,7 +416,7 @@ app.get("/api/get_following", check_access, (req, res) => {
         })
     } else {
         connection.query("select u.ID, u.username, u.status, u.profile_image from followers f inner join users u on u.ID=f.ID_user where f.ID_user = ? limit ?", [ID, limit], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -323,7 +435,7 @@ app.get("/api/get_followers", check_access, (req, res) => {
         })
     } else {
         connection.query("select u.ID, u.username, u.status, u.profile_image from followers f inner join users u on u.ID=f.ID_user where f.ID_user_follow = ? limit ?", [ID, limit], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -342,7 +454,7 @@ app.get("/api/get_follow", check_access, (req, res) => {
         })
     } else {
         connection.query("select count(ID) from followers where ID_user = ? and ID_user_follow = ?", [req.user, IDfollowed], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -361,10 +473,10 @@ app.post("/api/set_follow", check_access, (req, res) => {
         })
     } else {
         connection.query("select count(ID) as 'count' from followers where where ID_user = ? and ID_user_follow = ?", [req.user, IDfollowed], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             if(result[0].count == 0) {
                 connection.query("insert into followers() values(NULL, ?, ?)", [req.user, IDfollowed], (err, result) => {
-                    if(err) throw err;
+                    if(err) res.status(500).json({ success:false, message:"database error"}); 
                     res.status(200).json({
                         success:true,
                         message:"set follow success",
@@ -390,7 +502,7 @@ app.delete("/api/delete_follow", check_access, (req, res) => {
         })
     } else {
         connection.query("delete from followers where ID_user = ? and ID_user_follow = ?", [req.user, IDfollowed], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"deleted",
@@ -402,7 +514,7 @@ app.delete("/api/delete_follow", check_access, (req, res) => {
 
 app.get("/api/get_active_followers", check_access, (req, res) => {
     connection.query("select u.username, u.status, u.ID, u.profile_image from followers f inner join users u on u.ID=f.ID_user where u.ID_user_follow = ? order by RAND() limit 15", [req.user], (err, result) => {
-        if(err) throw err;
+        if(err) res.status(500).json({ success:false, message:"database error"}); 
         res.status(200).json({
             success:true,
             message:"get success",
@@ -413,6 +525,17 @@ app.get("/api/get_active_followers", check_access, (req, res) => {
 
 // notifications
 
+app.get("/api/get_new_notifications_count", check_access, (req, res) => {
+    connection.query("select count(ID) as 'count' from notifications where ID_user = ?", [req.user], (err, result) => {
+        if(err) res.status(500).json({ success:false, message:"database error"}); 
+        res.status(200).json({
+            success:true,
+            message:"get success",
+            data:result
+        })
+    })
+})
+
 app.get("/api/get_notifications", check_access, (req, res) => {
     const {limit} = req.body;
     if(!limit) {
@@ -422,7 +545,7 @@ app.get("/api/get_notifications", check_access, (req, res) => {
         })
     } else {
         connection.query("select text_body, redirect, send_date, saw from notifications where ID_user = ? limit ?", [req.user, limit], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
 
             res.status(200).json({
                 success:true,
@@ -435,7 +558,7 @@ app.get("/api/get_notifications", check_access, (req, res) => {
 
 app.delete("/api/delete_all_notifications", check_access, (req, res) =>{
     connection.query("delete from notyfications where ID_user = ?", [req.user], (err, result) => {
-        if(err) throw err;
+        if(err) res.status(500).json({ success:false, message:"database error"}); 
         res.status(200).json({
             success:true,
             message:"deleted",
@@ -445,13 +568,20 @@ app.delete("/api/delete_all_notifications", check_access, (req, res) =>{
 
 app.delete("/api/delete_notification", check_access, (req, res) =>{
     const {IDNotification} = req.body;
-    connection.query("delete from notyfications where ID = ?", [IDNotification], (err, result) => {
-        if(err) throw err;
-        res.status(200).json({
-            success:true,
-            message:"deleted",
+    if(!IDNotification) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: IDNotification"
         })
-    })
+    } else {
+        connection.query("delete from notyfications where ID = ?", [IDNotification], (err, result) => {
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"deleted",
+            })
+        })
+    }
 })
 
 
@@ -476,7 +606,7 @@ app.post("/api/create_post", [postUpload.array("photo"), check_access], (req, re
             connection.query("insert into posts() values(NULL, ?, ?, ?, ?, 0)",
                  [req.user, send_date, title, text]);
             connection.query("select ID from posts where send_date = ? and ID_user = ? limit 1", [send_date, req.user], (err, result) => {
-                if(err) throw err;
+                if(err) res.status(500).json({ success:false, message:"database error"}); 
                 files.forEach(element => {
                     connection.query("insert into postimages() values(NULL, ?, ?)", [result[0]["ID"], element]);
                 });
@@ -507,6 +637,99 @@ app.delete("/api/delete_post", check_access, (req, res) => {
     }
 });
 
+app.get("/api/get_user_posts", check_access, (req, res) => {
+    const {ID, limit} = req.body;
+    if(!ID || !limit) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: ID, limit"
+        });
+    } else {
+        connection.query("select from user u inner join posts p on p.ID_user=u.ID inner join postimages i on i.ID_post=p.ID where u.protected = 0 and u.ID = ? order by p.send_date desc limit ?", [ID, limit], (err, result) => {
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+                res.status(200).json({
+                    success:true,
+                    message:"get success",
+                    data:result
+                })
+        })
+    }
+})
+
+app.get("/api/get_my_posts", check_access, (req, res) => {
+    connection.query("select p.send_date, p.title, p.text_body, p.edited, p.ID as 'postID', u.ID as 'userID', u.username, u.profile_image, u.status from user u inner join posts p on p.ID_user=u.ID where u.ID = ? order by p.send_date desc limit ?", [req.user, limit], (err, result) => {
+        if(err) res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+    })
+});
+
+app.get("/api/get_for_you_posts", check_access, (req, res) => {
+    const {limit} = req.body;
+    if(!limit) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: limit"
+        });
+    } else {
+        connection.query("SELECT p.send_date, p.title, p.text_body, p.edited, p.ID as 'postID', u.ID as 'userID', u.username, u.profile_image, u.status FROM posts p INNER JOIN users u on u.ID=p.ID_user INNER JOIN followers f on f.ID_user_follow=p.ID_user WHERE p.ID_user = ? ORDER BY p.send_date DESC LIMIT ?",
+             [req.user, limit], (err, result) => {
+                if(err) res.status(500).json({ success:false, message:"database error"}); 
+                res.status(200).json({
+                    success:true,
+                    message:"get success",
+                    data:result
+                })
+             })
+
+    }
+});
+
+app.get("/api/get_searched_posts", check_access, (req, res) => {
+    const {search, limit} = req.body;
+    if(!search || !limit) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: search, limit"
+        });
+    } else {
+        connection.query("SELECT p.send_date, p.title, p.text_body, p.edited, p.ID as 'postID', u.ID as 'userID', u.username, u.profile_image, u.status FROM posts p INNER JOIN users u on u.ID=p.ID_user INNER JOIN followers f on f.ID_user_follow=p.ID_user WHERE u.protected = 0 and p.title LIKE ? LIMIT ?",
+             ["%" + search + "%", limit], (err, result) => {
+                if(err) res.status(500).json({ success:false, message:"database error"}); 
+                res.status(200).json({
+                    success:true,
+                    message:"get success",
+                    data:result
+                })
+             })
+    }
+})
+
+// postimages ----------------------------------------------------
+
+app.get("/api/get_post_images", check_access, (req, res) => {
+    const {IDPost} = req.body;
+    if(!IDPost) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: IDPost"
+        });
+    } else {
+        connection.query("select img from postimages where ID_post = ?", [IDPost], (err, result) => {
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+        })
+    }
+})
+
+
 // comments ------------------------------------------------------
 
 app.post("/api/create_comment", check_access, (req, res) => {
@@ -519,7 +742,7 @@ app.post("/api/create_comment", check_access, (req, res) => {
     } else {
         const send_date = dateFormatter.format(new Date().toLocaleString(), 'yyyy-MM-dd HH:mm:ss');
         connection.query("insert into comments() values(NULL, ?, ?, ?, ?, DEFAULT)", [req.user, postID, send_date, text_body], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"created new comment"
@@ -554,7 +777,7 @@ app.post("/api/edit_comment", check_access, (req, res) => {
     } else {
         const send_date = dateFormatter.format(new Date().toLocaleString(), 'yyyy-MM-dd HH:mm:ss');
         connection.query("update comments set send_date = ?, text_body = ?, edited=1 where ID = ?", [send_date, text_body, commentID], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"edited comment"
@@ -572,7 +795,7 @@ app.get("/api/get_comment", check_access, (req, res) => {
         });
     } else {
         connection.query("select text_body from comments where ID=?", [commentID], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -591,7 +814,7 @@ app.get("/api/get_comments", check_access, (req, res) => {
         });
     } else {
         connection.query("select c.ID, c.send_date, c.text_body, c.edited, u.username, u.status, u.profile_image, u.ID as 'user_ID' from comments c inner join users u on u.ID=c.ID_user where c.ID_post order by c.send_date desc limit ?", [postID, limit], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -612,10 +835,10 @@ app.post("/api/set_like", check_access, (req, res) => {
         });
     } else {
         connection.query("select count(ID) as 'count' from likes where where ID_user = ? and ID_post = ?", [req.user, postID], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             if(result[0].count == 0) {
                 connection.query("insert into likes() values(NULL, ?, ?)", [req.user, postID], (err, result) => {
-                    if(err) throw err;
+                    if(err) res.status(500).json({ success:false, message:"database error"}); 
                     res.status(200).json({
                         success:true,
                         message:"created like",
@@ -640,7 +863,7 @@ app.delete("/api/delete_like", check_access, (req, res) => {
         });
     } else {
         connection.query("delete from likes where ID_post = ? and ID_user = ?", [postID, req.user], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"deleted like",
@@ -658,7 +881,7 @@ app.post("/api/get_like", check_access, (req, res) => {
         });
     } else {
         connection.query("select ID from likes where ID_post = ? and ID_user = ?", [IDpost, req.user], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:true,
                 message:"get success",
@@ -677,7 +900,7 @@ app.get("/api/get_likes_count", check_access, (req, res) => {
         });
     } else {
         connection.query("select count(ID) as 'count' from likes where ID_post = ?", [IDPost], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:false,
                 message:"get success",
@@ -697,7 +920,7 @@ app.get("/api/get_likes", check_access, (req, res) => {
         });
     } else {
         connection.query("select u.ID, u.username, u.profile_image, u.status from likes l inner join users u on u.ID=l.ID_user where ID_post = ? order by u.username limit ?", [IDPost, limit], (err, result) => {
-            if(err) throw err;
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
             res.status(200).json({
                 success:false,
                 message:"get success",

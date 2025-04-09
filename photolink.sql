@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Apr 05, 2025 at 08:49 PM
+-- Generation Time: Apr 09, 2025 at 02:24 PM
 -- Wersja serwera: 8.0.39
 -- Wersja PHP: 8.2.26
 
@@ -102,13 +102,6 @@ CREATE TABLE `posts` (
   `edited` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `posts`
---
-
-INSERT INTO `posts` (`ID`, `ID_user`, `send_date`, `title`, `text_body`, `edited`) VALUES
-(1, 2, '2025-02-04 22:09:17', 'Hello world', 'Hello world', 0);
-
 -- --------------------------------------------------------
 
 --
@@ -139,37 +132,46 @@ CREATE TABLE `users` (
 -- Indeksy dla tabeli `comments`
 --
 ALTER TABLE `comments`
-  ADD PRIMARY KEY (`ID`);
+  ADD PRIMARY KEY (`ID`),
+  ADD KEY `ID_user` (`ID_user`),
+  ADD KEY `ID_post` (`ID_post`);
 
 --
 -- Indeksy dla tabeli `followers`
 --
 ALTER TABLE `followers`
-  ADD PRIMARY KEY (`ID`);
+  ADD PRIMARY KEY (`ID`),
+  ADD KEY `ID_user_follow` (`ID_user_follow`),
+  ADD KEY `ID_user` (`ID_user`);
 
 --
 -- Indeksy dla tabeli `likes`
 --
 ALTER TABLE `likes`
-  ADD PRIMARY KEY (`ID`);
+  ADD PRIMARY KEY (`ID`),
+  ADD KEY `ID_post` (`ID_post`),
+  ADD KEY `ID_user` (`ID_user`);
 
 --
 -- Indeksy dla tabeli `notifications`
 --
 ALTER TABLE `notifications`
-  ADD PRIMARY KEY (`ID`);
+  ADD PRIMARY KEY (`ID`),
+  ADD KEY `ID_user` (`ID_user`);
 
 --
 -- Indeksy dla tabeli `postimages`
 --
 ALTER TABLE `postimages`
-  ADD PRIMARY KEY (`ID`);
+  ADD PRIMARY KEY (`ID`),
+  ADD KEY `ID_post` (`ID_post`);
 
 --
 -- Indeksy dla tabeli `posts`
 --
 ALTER TABLE `posts`
-  ADD PRIMARY KEY (`ID`);
+  ADD PRIMARY KEY (`ID`),
+  ADD KEY `ID_user` (`ID_user`);
 
 --
 -- Indeksy dla tabeli `users`
@@ -222,6 +224,50 @@ ALTER TABLE `posts`
 --
 ALTER TABLE `users`
   MODIFY `ID` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `comments`
+--
+ALTER TABLE `comments`
+  ADD CONSTRAINT `comments_ibfk_1` FOREIGN KEY (`ID_user`) REFERENCES `users` (`ID`) ON DELETE CASCADE,
+  ADD CONSTRAINT `comments_ibfk_2` FOREIGN KEY (`ID_post`) REFERENCES `posts` (`ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `followers`
+--
+ALTER TABLE `followers`
+  ADD CONSTRAINT `followers_ibfk_1` FOREIGN KEY (`ID_user_follow`) REFERENCES `users` (`ID`) ON DELETE CASCADE,
+  ADD CONSTRAINT `followers_ibfk_2` FOREIGN KEY (`ID_user`) REFERENCES `users` (`ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `likes`
+--
+ALTER TABLE `likes`
+  ADD CONSTRAINT `likes_ibfk_1` FOREIGN KEY (`ID_post`) REFERENCES `posts` (`ID`) ON DELETE CASCADE,
+  ADD CONSTRAINT `likes_ibfk_2` FOREIGN KEY (`ID_user`) REFERENCES `users` (`ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`ID_user`) REFERENCES `users` (`ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `postimages`
+--
+ALTER TABLE `postimages`
+  ADD CONSTRAINT `postimages_ibfk_1` FOREIGN KEY (`ID_post`) REFERENCES `posts` (`ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `posts`
+--
+ALTER TABLE `posts`
+  ADD CONSTRAINT `posts_ibfk_1` FOREIGN KEY (`ID_user`) REFERENCES `users` (`ID`) ON DELETE CASCADE,
+  ADD CONSTRAINT `posts_ibfk_2` FOREIGN KEY (`ID_user`) REFERENCES `users` (`ID`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
