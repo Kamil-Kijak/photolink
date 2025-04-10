@@ -150,6 +150,31 @@ io.on("connection", (socket) => {
 
 // users -------------------------------------------------------
 
+app.get("/api/check_user_exist/:username", (req, res) => {
+    const {username} = req.params;
+    if(!username) {
+        res.status(400).json({
+            success:false,
+            message:"not enough data: username"
+        })
+    } else {
+        connection.query("select count(ID) as 'count' from users where username = ?", [username], (err, result) => {
+            if(err) res.status(500).json({ success:false, message:"database error"}); 
+            if(result[0].count == 0) {
+                res.status(200).json({
+                    success:true,
+                    message:"not exist"
+                })
+            } else {
+                res.status(400).json({
+                    success:false,
+                    message:"exist"
+                })
+            }
+        })
+    }
+})
+
 app.post("/api/register_user", (req, res) => {
     const {name, surname, username, birthdate, country, email, password} = req.body;
     if(!name || !surname || !username || !birthdate || !country || !email || !password) {
@@ -159,7 +184,7 @@ app.post("/api/register_user", (req, res) => {
         })
     } else {
         connection.query("select count(ID) as 'count' from users where username = ?", [username], (error, result) => {
-            if(error) throw error;
+            if(error) res.status(500).json({ success:false, message:"database error"}); 
             if(result[0].count == 0) {
                 // create new user
                 connection.query("insert into users() values(NULL, ?, ?, ?, ?, ?, ?, ?, DEFAULT, NULL, NULL, DEFAULT, DEFAULT)",
