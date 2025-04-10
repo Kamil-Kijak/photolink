@@ -283,8 +283,8 @@ app.delete("/api/delete_user", check_access, (req, res) => {
     })
 })
 
-app.get("/api/get_user", check_access, (req, res) => {
-    const {ID} = req.body;
+app.get("/api/get_user/:ID", check_access, (req, res) => {
+    const {ID} = req.params;
     if(!ID) {
         res.status(400).json({
             success:false,
@@ -372,8 +372,8 @@ app.post("/api/update_personal_data", check_access, (req, res) => {
     }
 })
 
-app.get("/api/get_searched_users", check_access, (req, res) => {
-    const {search, limit} = req.body;
+app.get("/api/get_searched_users/:search/:limit", check_access, (req, res) => {
+    const {search, limit} = req.params;
     if(!search || !limit) {
         res.status(400).json({
             success:false,
@@ -395,8 +395,8 @@ app.get("/api/get_searched_users", check_access, (req, res) => {
 
 // followers ------------------------------------------------------
 
-app.get("/api/get_followers_count", check_access, (req, res) => {
-    const {ID} = req.body;
+app.get("/api/get_followers_count/:ID", check_access, (req, res) => {
+    const {ID} = req.params;
     if(!ID) {
         res.status(400).json({
             success:false,
@@ -413,8 +413,8 @@ app.get("/api/get_followers_count", check_access, (req, res) => {
         });
     }
 });
-app.get("/api/get_following_count", check_access, (req, res) => {c
-    const {ID} = req.body;
+app.get("/api/get_following_count/:ID", check_access, (req, res) => {c
+    const {ID} = req.params;
     if(!ID) {
         res.status(400).json({
             success:false,
@@ -432,8 +432,8 @@ app.get("/api/get_following_count", check_access, (req, res) => {c
     }
 });
 
-app.get("/api/get_following", check_access, (req, res) => {
-    const {limit, ID} = req.body;
+app.get("/api/get_following/:ID/:limit", check_access, (req, res) => {
+    const {limit, ID} = req.params;
     if(!limit || !ID) {
         res.status(400).json({
             success:false,
@@ -451,8 +451,8 @@ app.get("/api/get_following", check_access, (req, res) => {
     }
 });
 
-app.get("/api/get_followers", check_access, (req, res) => {
-    const {limit, ID} = req.body;
+app.get("/api/get_followers/:ID/:limit", check_access, (req, res) => {
+    const {limit, ID} = req.params;
     if(!ID || !limit) {
         res.status(400).json({
             success:false,
@@ -470,8 +470,8 @@ app.get("/api/get_followers", check_access, (req, res) => {
     }
 });
 
-app.get("/api/get_follow", check_access, (req, res) => {
-    const {IDfollowed} = req.body;
+app.get("/api/get_follow/:IDfollowed", check_access, (req, res) => {
+    const {IDfollowed} = req.params;
     if(!IDfollowed) {
         res.status(400).json({
             success:false,
@@ -561,8 +561,8 @@ app.get("/api/get_new_notifications_count", check_access, (req, res) => {
     })
 })
 
-app.get("/api/get_notifications", check_access, (req, res) => {
-    const {limit} = req.body;
+app.get("/api/get_notifications/:limit", check_access, (req, res) => {
+    const {limit} = req.params;
     if(!limit) {
         res.status(400).json({
             success:false,
@@ -662,8 +662,8 @@ app.delete("/api/delete_post", check_access, (req, res) => {
     }
 });
 
-app.get("/api/get_user_posts", check_access, (req, res) => {
-    const {ID, limit} = req.body;
+app.get("/api/get_user_posts/:ID/:limit", check_access, (req, res) => {
+    const {ID, limit} = req.params;
     if(!ID || !limit) {
         res.status(400).json({
             success:false,
@@ -692,8 +692,8 @@ app.get("/api/get_my_posts", check_access, (req, res) => {
     })
 });
 
-app.get("/api/get_for_you_posts", check_access, (req, res) => {
-    const {limit} = req.body;
+app.get("/api/get_for_you_posts/:limit", check_access, (req, res) => {
+    const {limit} = req.params;
     if(!limit) {
         res.status(400).json({
             success:false,
@@ -713,8 +713,8 @@ app.get("/api/get_for_you_posts", check_access, (req, res) => {
     }
 });
 
-app.get("/api/get_searched_posts", check_access, (req, res) => {
-    const {search, limit} = req.body;
+app.get("/api/get_searched_posts/:search/:limit", check_access, (req, res) => {
+    const {search, limit} = req.params;
     if(!search || !limit) {
         res.status(400).json({
             success:false,
@@ -735,8 +735,8 @@ app.get("/api/get_searched_posts", check_access, (req, res) => {
 
 // postimages ----------------------------------------------------
 
-app.get("/api/get_post_images", check_access, (req, res) => {
-    const {IDPost} = req.body;
+app.get("/api/get_post_images/:IDPost", check_access, (req, res) => {
+    const {IDPost} = req.params;
     if(!IDPost) {
         res.status(400).json({
             success:false,
@@ -811,8 +811,8 @@ app.post("/api/edit_comment", check_access, (req, res) => {
     }
 })
 
-app.get("/api/get_comment", check_access, (req, res) => {
-    const {commentID} = req.body
+app.get("/api/get_comment/:commentID", check_access, (req, res) => {
+    const {commentID} = req.params;
     if(!commentID) {
         res.status(400).json({
             success:false,
@@ -830,8 +830,8 @@ app.get("/api/get_comment", check_access, (req, res) => {
     }
 });
 
-app.get("/api/get_comments", check_access, (req, res) => {
-    const {postID, limit} = req.body
+app.get("/api/get_comments/:postID/:limit", check_access, (req, res) => {
+    const {postID, limit} = req.params
     if(!postID || !limit) {
         res.status(400).json({
             success:false,
@@ -916,8 +916,8 @@ app.post("/api/get_like", check_access, (req, res) => {
     }
 });
 
-app.get("/api/get_likes_count", check_access, (req, res) => {
-    const {IDPost} = req.body;
+app.get("/api/get_likes_count/:IDPost", check_access, (req, res) => {
+    const {IDPost} = req.params;
     if(!IDPost) {
         res.status(400).json({
             success:false,
@@ -936,8 +936,8 @@ app.get("/api/get_likes_count", check_access, (req, res) => {
 
 })
 
-app.get("/api/get_likes", check_access, (req, res) => {
-    const {IDPost, limit} = req.body;
+app.get("/api/get_likes/:IDPost/:limit", check_access, (req, res) => {
+    const {IDPost, limit} = req.params;
     if(!IDPost || !limit) {
         res.status(400).json({
             success:false,
