@@ -1,81 +1,57 @@
 
-import {react, useState, useEffect, useRef} from "react";
+import {react, useState, useEffect, useCallback} from "react";
 
 function MenuPage() {
     const [mode, setMode] = useState("login");
     const [countries, setCountries] = useState();
-    const [registerData, setRegisterData] = useState({})
+    const [registerData, setRegisterData] = useState({
+        rUsername:"",
+        name:"",
+        surname:"",
+        birthdate:"",
+        email:"",
+        country:"",
+        rPassword:"",
+        rPassword2:""
+    })
+    const [loginData, setLoginData] = useState({
+        username:"",
+        password:""
+    })
+    const [warnings, setWarnings] = useState({})
 
-    const userExistText = useRef(null);
-    const nameText = useRef(null);
-    const surnameText = useRef(null);
-    const passwordText = useRef(null);
     useEffect(() => {
         fetch("https://restcountries.com/v3.1/all").then((res) => res.json()).then(data => {
-            setCountries(data.sort((a, b) => a.name.common.localeCompare(b.name.common)).map((ele, index) => `<option key='${index}'>${ele.name.common}</option>`));
+            setCountries(data.sort((a, b) => a.name.common.localeCompare(b.name.common)).map((ele, index) =>
+                 `<option key='${index}' value='${ele.name.common}'>${ele.name.common}</option>`));
         })
     }, []);
 
-    const checkPattern = (obj, pattern, error) => {
+    const loginUser = useCallback(() => {
+        let allData = true;
+        Object.keys(loginData).forEach((key) => {
+            if(!loginData[key].length != 0) {
+                allData = false;
+                setWarnings(prev => ({...prev, [key]:"enter a data"}))
+            }
+        })
+        if(allData) {
 
-    }
+        }
 
-    const checkUsername = (el) => {
-        const username = el.target.value;
-        userExistText.current.textContent = ""
-        if(username.length > 50) {
-            userExistText.current.textContent = "too long"
-            return;
-        }
-        if(username.length > 0) {
-            fetch(`/api/check_user_exist/${username}`).then(
-                (res) => {
-                    if(res.ok) {
-                        return res.json();
-                    }
-                }
-            ).then(data => {
-                if(data.success) {
-                    userExistText.current.textContent = "This username is avaiable"
-                } else {
-                    userExistText.current.textContent = "This username is taken"
-                }
-            })
-        }
-    }
-    const checkName = (el) => {
-        const name = el.target.value;
-        nameText.current.textContent = ""
-        if(name.length > 50) {
-            nameText.current.textContent = "too long"
-            return;
-        }
-        if(name.length == 0) {
-            return;
-        }
-    }
-    const checkSurname = (el) => {
-        const surname = el.target.value;
-        surnameText.current.textContent = ""
-        if(surname.length > 50) {
-            surnameText.current.textContent = "too long"
-            return;
-        }
-        if(surname.length == 0) {
-            return;
-        }
-    }
-    const checkPassword = (el) => {
-        const password = el.target.value;
-        passwordText.current.textContent = ""
-        if(password < 8) {
-            passwordText.current.textContent = "minimum 8 chars"
-            return;
-        }
-    }
-    const checkRepeat = (el) => {
+    }, [loginData, warnings]);
+    const registerUser = useCallback(() => {
+        let allData = true;
+        Object.keys(registerData).forEach((key) => {
+            if(!registerData[key].length != 0) {
+                allData = false;
+                setWarnings(prev => ({...prev, [key]:"enter a data"}))
+            }
+        })
+        if(allData) {
 
-    }
+        }
+    }, [registerData, warnings])
 
     return (
         <main>
@@ -92,9 +68,21 @@ function MenuPage() {
                     <div>
                         <section>
                             <span>Login to photolink</span>
-                            <input type="text" placeholder="username..." />
-                            <input type="password" placeholder="password..." />
-                            <button>
+                            <div>
+                                <input type="text" placeholder="username..." onChange={(e) => {
+                                    setLoginData(prev => ({...prev, username:e.target.value}))
+                                    setWarnings(prev => ({...prev, username:""}))
+                                }}/>
+                                <span>{warnings.username}</span>
+                            </div>
+                            <div>
+                                <input type="password" placeholder="password..." onChange={(e) => {
+                                    setLoginData(prev => ({...prev, password:e.target.value}))
+                                    setWarnings(prev => ({...prev, password:""}))
+                                }}/>
+                                <span>{warnings.password}</span>
+                            </div>
+                            <button onClick={loginUser}>
                                 Login to account
                             </button>
                         </section>
@@ -109,35 +97,58 @@ function MenuPage() {
                             <span>Register to photolink</span>
                             <div>
                                 <div>
-                                    <input type="text" placeholder="username..." onChange={checkUsername} />
-                                    <span ref={userExistText}></span>
+                                    <input type="text" placeholder="username..." onChange={(e) => {
+                                        setRegisterData(prev => ({...prev, rUsername:e.target.value}))
+                                        if(e.target.value.length != 0) {
+                                            fetch(`/api/check_user_exist/${e.target.value}`).then(res => {
+                                                if(!res.ok) {
+                                                    throw new Error('Network response was not ok');
+                                                }
+                                                return res.json();
+                                            }).then(data => {
+                                                if(!data.success) {
+                                                    setWarnings(prev => ({...prev, rUsername:"this username is already taken"}))
+                                                } else {
+                                                    setWarnings(prev => ({...prev, rUsername:""}))
+                                                }
+                                            })
+                                        }
+                                    }}/>
+                                    <span>{warnings.rUsername}</span>
                                 </div>
                                 <div>
-                                    <input type="text" placeholder="name..." onChange={checkName}/>
-                                    <span ref={nameText}></span>
+                                    <input type="text" placeholder="name..."/>
+                                    <span>{warnings.name}</span>
                                 </div>
                                 <div>
-                                    <input type="text" placeholder="surname..." onChange={checkSurname} />
-                                    <span ref={surnameText}></span>
+                                    <input type="text" placeholder="surname..." />
+                                    <span>{warnings.surname}</span>
                                 </div>
                                 <div>
-                                    <input type="date" placeholder="birthdate..." />
+                                    <input type="date" placeholder="birthdate..."  onChange={
+                                        (e) => setRegisterData(prev => ({...prev, birthdate:e.target.value}))
+                                    }/>
+                                    <span>{warnings.birthdate}</span>
                                 </div>
                                 <div>
-                                    <select dangerouslySetInnerHTML={{ __html: countries }} />
+                                    <select dangerouslySetInnerHTML={{ __html: countries }} onChange={
+                                        (e) => setRegisterData(prev => ({...prev, country:e.target.value}))
+                                    }/>
                                 </div>
                                 <div>
                                     <input type="email" placeholder="email..."/>
+                                    {warnings.email}
                                 </div>
                                 <div>
-                                    <input type="password" placeholder="password..." onChange={checkPassword}/>
-                                    <span ref={passwordText}></span>
+                                    <input type="password" placeholder="password..."/>
+                                    <span>{warnings.rPassword}</span>
                                 </div>
                                 <div>
                                     <input type="password" placeholder="repeat password..."/>
+                                    <span>{warnings.rPassword2}</span>
                                 </div>
                             </div>
-                            <button>
+                            <button onClick={registerUser}>
                                 Create new account
                             </button>
                         </section>
