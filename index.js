@@ -166,7 +166,7 @@ app.get("/api/check_user_exist/:username", (req, res) => {
                     message:"not exist"
                 })
             } else {
-                res.status(400).json({
+                res.status(200).json({
                     success:false,
                     message:"exist"
                 })

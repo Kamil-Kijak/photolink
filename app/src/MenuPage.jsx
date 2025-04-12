@@ -20,6 +20,8 @@ function MenuPage() {
     })
     const [warnings, setWarnings] = useState({})
 
+    const [errors, setErrors] = useState({});
+
     useEffect(() => {
         fetch("https://restcountries.com/v3.1/all").then((res) => res.json()).then(data => {
             setCountries(data.sort((a, b) => a.name.common.localeCompare(b.name.common)).map((ele, index) =>
@@ -36,7 +38,27 @@ function MenuPage() {
             }
         })
         if(allData) {
-
+            // login
+            fetch("/api/login_user", {
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify(loginData)
+            }).then(res =>
+                 {
+                    if(!res.ok) {
+                        return res.json();
+                    }
+                    return res.json()
+                 }).then(data => {
+                if(!data.success) {
+                    setErrors(prev => ({...prev, loginError:data.message}))
+                } else {
+                    //success login
+                    alert("login")
+                }
+            })
         }
 
     }, [loginData, warnings]);
@@ -49,7 +71,41 @@ function MenuPage() {
             }
         })
         if(allData) {
-
+            if(!Object.keys(warnings).some((key) => {
+                if(warnings[key].length > 0) {
+                    return true;
+                }
+            })) {
+                // register
+                fetch("/api/register_user", {
+                    method:"POST",
+                    headers:{
+                        "Content-Type":"application/json"
+                    },
+                    body:JSON.stringify({
+                        name:registerData.name,
+                        surname:registerData.surname,
+                        username:registerData.rUsername,
+                        birthdate:registerData.birthdate,
+                        country:registerData.country,
+                        email:registerData.email,
+                        password:registerData.rPassword
+                    })
+                }).then(res =>
+                    {
+                       if(!res.ok) {
+                           return res.json();
+                       }
+                       return res.json()
+                }).then(data => {
+                   if(!data.success) {
+                       setErrors(prev => ({...prev, registerError:data.message}))
+                   } else {
+                       // register success
+                       alert("register")
+                   }
+               })
+            }
         }
     }, [registerData, warnings])
 
@@ -85,10 +141,24 @@ function MenuPage() {
                             <button onClick={loginUser}>
                                 Login to account
                             </button>
+                            <span>{errors.loginError}</span>
                         </section>
                         <section>
                             <span>dont have an account?</span>
-                            <button onClick={() => {setMode("register")}}>Register</button>
+                            <button onClick={() => {setMode("register");setRegisterData(
+                                {
+                                    rUsername:"",
+                                    name:"",
+                                    surname:"",
+                                    birthdate:"",
+                                    email:"",
+                                    country:"",
+                                    rPassword:"",
+                                    rPassword2:""
+                                }
+                            );
+                            setWarnings({});
+                            setErrors({})}}>Register</button>
                         </section>
                     </div>
                     :
@@ -101,7 +171,8 @@ function MenuPage() {
                                         setRegisterData(prev => ({...prev, rUsername:e.target.value}))
                                         if(e.target.value.length != 0) {
                                             fetch(`/api/check_user_exist/${e.target.value}`).then(res => {
-                                                if(!res.ok) {
+                                                if(!res) {
+                                                    setWarnings(prev => ({...prev, rUsername:"app error"}))
                                                     throw new Error('Network response was not ok');
                                                 }
                                                 return res.json();
@@ -117,44 +188,105 @@ function MenuPage() {
                                     <span>{warnings.rUsername}</span>
                                 </div>
                                 <div>
-                                    <input type="text" placeholder="name..."/>
+                                    <input type="text" placeholder="name..." onChange={(e) => {
+                                        setRegisterData(prev => ({...prev, name:e.target.value}))
+                                        if(e.target.value.length > 50) {
+                                            setWarnings(prev => ({...prev, name:"name too long"}))
+                                        } else {
+                                            setWarnings(prev => ({...prev, name:""}))
+                                        }
+                                    }
+                                        
+                                    }/>
                                     <span>{warnings.name}</span>
                                 </div>
                                 <div>
-                                    <input type="text" placeholder="surname..." />
+                                    <input type="text" placeholder="surname..." onChange={(e) => {
+                                        setRegisterData(prev => ({...prev, surname:e.target.value}))
+                                        if(e.target.value.length > 50) {
+                                            setWarnings(prev => ({...prev, surname:"surname too long"}))
+                                        } else {
+                                            setWarnings(prev => ({...prev, surname:""}))
+                                        }
+                                    }
+                                        
+                                    }/>
                                     <span>{warnings.surname}</span>
                                 </div>
                                 <div>
                                     <input type="date" placeholder="birthdate..."  onChange={
-                                        (e) => setRegisterData(prev => ({...prev, birthdate:e.target.value}))
+                                        (e) => 
+                                            {
+                                                setRegisterData(prev => ({...prev, birthdate:e.target.value}))
+                                                setWarnings(prev => ({...prev, birthdate:""}))
+                                            }
                                     }/>
                                     <span>{warnings.birthdate}</span>
                                 </div>
                                 <div>
-                                    <select dangerouslySetInnerHTML={{ __html: countries }} onChange={
-                                        (e) => setRegisterData(prev => ({...prev, country:e.target.value}))
+                                    <select dangerouslySetInnerHTML={{ __html: countries }} value={registerData.country} onChange={
+                                        (e) => 
+                                            {
+                                                setRegisterData(prev => ({...prev, country:e.target.value}))
+                                                setWarnings(prev => ({...prev, country:""}))
+                                            }
                                     }/>
                                 </div>
                                 <div>
-                                    <input type="email" placeholder="email..."/>
+                                    <input type="email" placeholder="email..." onChange={(e) => {
+                                        setRegisterData(prev => ({...prev, email:e.target.value}))
+                                        if(e.target.value.length > 50) {
+                                            setWarnings(prev => ({...prev, email:"email too long"}))
+                                        } else {
+                                            setWarnings(prev => ({...prev, email:""}))
+                                        }
+                                    }
+                                        
+                                    }/>
                                     {warnings.email}
                                 </div>
                                 <div>
-                                    <input type="password" placeholder="password..."/>
+                                    <input type="password" placeholder="password..." onChange={(e) => {
+                                        setRegisterData(prev => ({...prev, rPassword:e.target.value}))
+                                        if(e.target.value.length >= 8) {
+                                            setWarnings(prev => ({...prev, rPassword:""}))
+                                        } else {
+                                            setWarnings(prev => ({...prev, rPassword:"password is too short"}))
+                                        }
+                                    }
+                                        
+                                    }/> 
                                     <span>{warnings.rPassword}</span>
                                 </div>
                                 <div>
-                                    <input type="password" placeholder="repeat password..."/>
+                                    <input type="password" placeholder="repeat password..." onChange={(e) => {
+                                        setRegisterData(prev => ({...prev, rPassword2:e.target.value}))
+                                        if(registerData.rPassword === e.target.value) {
+                                            setWarnings(prev => ({...prev, rPassword2:""}))
+                                        } else {
+                                            setWarnings(prev => ({...prev, rPassword2:"passwords are not same"}))
+                                        }
+                                    }
+                                        
+                                    }/>
                                     <span>{warnings.rPassword2}</span>
                                 </div>
                             </div>
                             <button onClick={registerUser}>
                                 Create new account
                             </button>
+                            <span>{errors.registerError}</span>
                         </section>
                         <section>
                             <span>have an account?</span>
-                            <button onClick={() => {setMode("login")}}>Login</button>
+                            <button onClick={() => {setMode("login");setLoginData(
+                                {
+                                    username:"",
+                                    password:""
+                                }
+                            );
+                            setWarnings({});
+                            setErrors({})}}>Login</button>
                         </section>
                     </div>
                 }
