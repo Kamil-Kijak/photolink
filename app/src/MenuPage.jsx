@@ -1,7 +1,8 @@
 
 import {react, useState, useEffect, useCallback} from "react";
+import {useNavigate} from "react-router-dom"
 
-function MenuPage() {
+function MenuPage({setUser}) {
     const [mode, setMode] = useState("login");
     const [countries, setCountries] = useState();
     const [registerData, setRegisterData] = useState({
@@ -22,10 +23,28 @@ function MenuPage() {
 
     const [errors, setErrors] = useState({});
 
+    const navigation = useNavigate();
+
     useEffect(() => {
         fetch("https://restcountries.com/v3.1/all").then((res) => res.json()).then(data => {
             setCountries(data.sort((a, b) => a.name.common.localeCompare(b.name.common)).map((ele, index) =>
                  `<option key='${index}' value='${ele.name.common}'>${ele.name.common}</option>`));
+        })
+        fetch("/api/auto_login", {
+            method:"POST",
+            credentials:"include"
+        }).then(res => 
+        {
+            if(!res.ok) {
+                throw new Error("failed login")
+            }
+            return res.json();
+        }
+        ).then(data => {
+            if(data.success) {
+                setUser(data.ID);
+                navigation("/app")
+            }
         })
     }, []);
 
@@ -56,7 +75,8 @@ function MenuPage() {
                     setErrors(prev => ({...prev, loginError:data.message}))
                 } else {
                     //success login
-                    alert("login")
+                    setUser(data.ID);
+                    navigation("/app")
                 }
             })
         }
@@ -101,8 +121,29 @@ function MenuPage() {
                    if(!data.success) {
                        setErrors(prev => ({...prev, registerError:data.message}))
                    } else {
-                       // register success
-                       alert("register")
+                    fetch("/api/login_user", {
+                        method:"POST",
+                        headers:{
+                            "Content-Type":"application/json"
+                        },
+                        body:JSON.stringify({
+                            username:registerData.rUsername,
+                            password:registerData.rPassword
+                        })
+                    }).then(res =>
+                         {
+                            if(!res.ok) {
+                                return res.json();
+                            }
+                            return res.json()
+                         }).then(data => {
+                        if(!data.success) {
+                            setErrors(prev => ({...prev, loginError:data.message}))
+                        } else {
+                            setUser(data.ID);
+                            navigation("/app")
+                        }
+                    })
                    }
                })
             }

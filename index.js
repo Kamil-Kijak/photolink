@@ -168,11 +168,19 @@ app.get("/api/check_user_exist/:username", (req, res) => {
             } else {
                 res.status(200).json({
                     success:false,
-                    message:"exist"
+                    message:"exist",
                 })
             }
         })
     }
+})
+
+app.post("/api/auto_login", check_access, (req, res) => {
+    res.status(200).json({
+        success:true,
+        message:"access granted",
+        ID:req.user
+    })
 })
 
 app.post("/api/register_user", (req, res) => {
