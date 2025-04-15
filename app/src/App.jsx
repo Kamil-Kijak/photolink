@@ -1,20 +1,32 @@
 
-import {useCallback, useState} from "react"
-import {BrowserRouter, Routes, Route, Link} from "react-router-dom"
-import MenuPage from "./MenuPage"
-import MainPanel from "./MainPanel"
+import { useCallback, useState} from "react"
+import {BrowserRouter, Routes, Route} from "react-router-dom"
+import {io} from "socket.io-client"
 
+import MenuPage from "./MenuPage"
+import ForYou from "./sections/ForYou"
+import Explore from "./sections/Explore"
+import Notifications from "./sections/Notifications"
+import Create from "./sections/Create"
+import Profile from "./sections/Profile"
+
+const socket = io("localhost:3000");
 function App() {
   const [user, setUser] = useState(null);
   const setUserCallback = useCallback((ID) => {
     setUser(ID);
-  })
+    socket.emit("register", ID);
+  }, [])
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path='/' element={<MenuPage setUser={setUserCallback}></MenuPage>}/>
-        <Route path='/app' element={<MainPanel></MainPanel>}/>
+        <Route path='/app' element={<ForYou IDUser={user}></ForYou>}/>
+        <Route path='/explore' element={<Explore></Explore>}/>
+        <Route path='/notifications' element={<Notifications></Notifications>}/>
+        <Route path='/create' element={<Create></Create>}/>
+        <Route path='/profile/:id' element={<Profile></Profile>}/>
       </Routes>
     </BrowserRouter>
   )

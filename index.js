@@ -12,11 +12,19 @@ const {Server} = require("socket.io");
 const dateFormatter = require("date-fns");
 
 const app = express();
+
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+      origin: "http://localhost:5173",
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
+  });
 require("dotenv").config();
 app.use(express.json());
 app.use(cookieParser())
+
 
 const PORT = process.env.PORT || 3000;
 
@@ -75,7 +83,7 @@ if(process.env.DEV == "false") {
 const check_access = (req, res, next) => {
     const accessToken = req.cookies.access_jwt;
     const refreshToken = req.cookies.refresh_jwt;
-    if(!refreshToken || !accessToken) {
+    if(!refreshToken && !accessToken) {
         res.status(403).json({
             success:false,
             forbidden:true,
@@ -90,11 +98,13 @@ const check_access = (req, res, next) => {
     } catch(err) {
         try {
             const data = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY);
-            res.cookie("access_jwt", jwt.sign(data, process.env.ACCESS_TOKEN_KEY, {
+            res.cookie("access_jwt", jwt.sign({
+                ID:data.ID
+            }, process.env.ACCESS_TOKEN_KEY, {
                 expiresIn:"1h"
             }), {
                 httpOnly:true,
-                secure:true,
+                secure:false,
                 maxAge: 3600000
             })
             req.user = data.ID;
@@ -116,7 +126,10 @@ io.on("connection", (socket) => {
         for(const userID in connectedSockets) {
             if(connectedSockets[userID] === socket) {
                 delete connectedSockets[userID];
-                console.log(userID, " User disconnected");
+                connection.query("update users set status = ? where ID = ?", ["offline", userID], (err, result) => {
+                    
+                })
+                console.log(`User ${userID} disconnected`);
             }
         }
     })
@@ -144,7 +157,10 @@ io.on("connection", (socket) => {
     })
     socket.on("register", (userID) => {
         connectedSockets[userID] = socket;
-        console.log(userID, " User connected");
+        connection.query("update users set status = ? where ID = ?", ["online", userID], (err, result) => {
+            
+        })
+        console.log(`User ${userID} connected`);
     })
 });
 
@@ -708,10 +724,10 @@ app.get("/api/get_for_you_posts/:limit", check_access, (req, res) => {
             message:"not enough data: limit"
         });
     } else {
-        connection.query("SELECT p.send_date, p.title, p.text_body, p.edited, p.ID as 'postID', u.ID as 'userID', u.username, u.profile_image, u.status FROM posts p INNER JOIN users u on u.ID=p.ID_user INNER JOIN followers f on f.ID_user_follow=p.ID_user WHERE p.ID_user = ? ORDER BY p.send_date DESC LIMIT ?",
-             [req.user, limit], (err, result) => {
-                if(err) res.status(500).json({ success:false, message:"database error"}); 
-                res.status(200).json({
+        connection.query("SELECT p.send_date, p.title, p.text_body, p.edited, p.ID as 'postID', u.ID as 'userID', u.username, u.profile_image, u.status FROM posts p INNER JOIN users u on u.ID=p.ID_user INNER JOIN followers f on f.ID_user_follow=p.ID_user WHERE f.ID_user = ? ORDER BY p.send_date DESC LIMIT ?",
+             [req.user, parseInt(limit)], (err, result) => {
+                if(err) return res.status(500).json({ success:false, message:"database error", data:err}); 
+                return res.status(200).json({
                     success:true,
                     message:"get success",
                     data:result

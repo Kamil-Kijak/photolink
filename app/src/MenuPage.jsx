@@ -1,6 +1,7 @@
 
 import {react, useState, useEffect, useCallback} from "react";
 import {useNavigate} from "react-router-dom"
+import AppIcon from "../images/icon.png"
 
 function MenuPage({setUser}) {
     const [mode, setMode] = useState("login");
@@ -154,7 +155,7 @@ function MenuPage({setUser}) {
         <main>
             <section>
                 <div>
-                    <img src="" alt="" />
+                    <img src={AppIcon} alt="photolink" width={100}/>
                     <span>Photolink</span>
                 </div>
                 <div>
