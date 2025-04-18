@@ -13,6 +13,7 @@ export default function Profile({socket, userID}) {
     const [posts, setPosts] = useState([]);
     const [editProfile, setEditProfile] = useState(false);
     const [loadStatus, setLoadStatus] = useState("loading");
+    const [changes, setChanges] = useState({});
 
     useEffect(()=>{
         if(!userID) {
@@ -42,7 +43,22 @@ export default function Profile({socket, userID}) {
                 }
             })
         }, [])
+    const saveChanges = useCallback(() => {
+        const formData = new FormData();
+        if(!changes.photo) {
 
+        } else {
+            formData.append("photo", changes.photo);
+            fetch(`/api/upload_avatar`, {
+                method:"POST",
+                credentials:'include',
+                body:formData
+            }).then(res => res.json()).then(data => {
+                navigation(0);
+            })
+        }
+
+    }, [changes])
 
 
     return (
@@ -70,7 +86,7 @@ export default function Profile({socket, userID}) {
             </div>
             <div>
                 <div>
-                    <img src={user.profile_image ? `/api/get_avatar_img/${user.ID}/${user.profile_image}` : noProfile} alt="" />
+                    <img src={user.profile_image ? `/api/get_avatar_img/${user.ID}/${user.profile_image}` : noProfile} alt="" width={200} />
                     {user.status === "online" ? <div></div>:<div></div>}
                 </div>
                 <div>
@@ -107,10 +123,13 @@ export default function Profile({socket, userID}) {
                 <button onClick={() => setEditProfile(false)}>X</button>
             </div>
             <div>
-                <img src={user.profile_image ? `/api/get_avatar_img/${user.ID}/${user.profile_image}` : noProfile} alt="" />
-                <input type="file" accept="image/*"/>
+                <img src={user.profile_image ? `/api/get_avatar_img/${user.ID}/${user.profile_image}` : noProfile} alt="" width={200} />
+                <input type="file" accept="image/*" onChange={(e) => setChanges(prev => ({...prev, photo:e.target.files[0]}))}/>
             </div>
             <hr />
+            <div>
+                <button onClick={saveChanges}>Save changes</button>
+            </div>
         </section>
         }
         </section>

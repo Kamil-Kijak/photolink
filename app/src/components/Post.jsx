@@ -47,7 +47,7 @@ export default function Post({data}) {
                 headers:{
                     "Content-type":"application.json"
                 },
-                credentials:true,
+                credentials:'include',
                 body:JSON.stringify({
                     IDPost:data.ID
                 })
@@ -63,7 +63,7 @@ export default function Post({data}) {
                 headers:{
                     "Content-type":"application.json"
                 },
-                credentials:true,
+                credentials:'include',
                 body:JSON.stringify({
                     IDPost:data.ID
                 })
