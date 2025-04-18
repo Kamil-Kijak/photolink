@@ -5,9 +5,9 @@ import NavigationBar from "../components/NavigationBar"
 import Post from "../components/Post"
 
 export default function ForYou({IDUser}) {
-    const [posts, setPost] = useState([]);
+    const [posts, setPosts] = useState([]);
     const [loadStatus, setLoadStatus] = useState("loading");
-    const [limit, setLimit] = useState(15);
+    const [limit, setLimit] = useState(40);
     const navigation = useNavigate();
     useEffect(() => {
         if(!IDUser) {
@@ -15,27 +15,16 @@ export default function ForYou({IDUser}) {
         } 
     });
     useEffect(() => {
+        setLoadStatus("loading")
         generatePosts(limit)
     }, [limit])
-
-    const handleScroll = useCallback((event) => {
-          const scrollTop = event.target.scrollTop; // Ilość przewiniętych pikseli
-          const scrollHeight = event.target.scrollHeight; // Wysokość całego zawartości
-          const clientHeight = event.target.clientHeight; // Wysokość widocznej części
-          
-          if (scrollTop + clientHeight >= scrollHeight) {
-            const elements = limit + 15;
-            generatePosts(elements);
-            setLimit(elements);
-          }
-      }, [limit]);
 
     const generatePosts = useCallback((limit) => {
         fetch(`/api/get_for_you_posts/${limit}`).then(res => {
             return res.json();
         }).then(data => {
             if(data.success) {
-                setPost(data.data)
+                setPosts(data.data)
                 if(data.data.length == 0) {
                     setLoadStatus("empty")
                 } else {
@@ -43,13 +32,13 @@ export default function ForYou({IDUser}) {
                 }
             }
         })
-    }, [posts])
+    }, [])
 
 
     return (
         <section>
-            <NavigationBar></NavigationBar>
-            <main onScroll={(e) => handleScroll(e)}>
+            <NavigationBar IDUser={IDUser}></NavigationBar>
+            <main>
                 {
                     posts.map((element) => (<Post data={element}></Post>))
                 }
@@ -59,7 +48,7 @@ export default function ForYou({IDUser}) {
                     :
                     loadStatus == "empty" ? <section>You dont have any posts! Follow a people</section>
                     :
-                     <section></section>
+                    limit <= 200 && <button onClick={() => setLimit(prev => prev + 40)}>Generate more</button>
                 }
             </main>
         </section>

@@ -1,9 +1,118 @@
 
+import { useEffect, useState, useCallback} from "react";
+import {useNavigate, useParams} from "react-router-dom"
 
-export default function Profile() {
+import NavigationBar from "../components/NavigationBar"
+import Post from "../components/Post"
+import noProfile from "../../images/noProfile.jpeg"
+
+export default function Profile({socket, userID}) {
+    const navigation = useNavigate();
+    const {id} = useParams();
+    const [user, setUser] = useState({})
+    const [posts, setPosts] = useState([]);
+    const [editProfile, setEditProfile] = useState(false);
+    const [loadStatus, setLoadStatus] = useState("loading");
+
+    useEffect(()=>{
+        if(!userID) {
+            navigation("/");
+        } 
+        fetch(`/api/get_user/${id}`).then(res => res.json()).then(data => {
+            if(data.success) {
+                setUser(data.data[0]);
+            } else {
+                navigation('/')
+            }
+        })
+        generatePosts();
+    }, []);
+
+    const generatePosts = useCallback(() => {
+            fetch(`/api/get_user_posts/${id}`).then(res => {
+                return res.json();
+            }).then(data => {
+                if(data.success) {
+                    setPosts(data.data)
+                    if(data.data.length == 0) {
+                        setLoadStatus("empty")
+                    } else {
+                        setLoadStatus("loaded")
+                    }
+                }
+            })
+        }, [])
+
 
 
     return (
-        <h1>For you</h1>
+        <section>
+            <NavigationBar IDUser={userID}></NavigationBar>
+        <main>
+            {!user.username ? <span>No user found</span> : <></>}
+            <div>
+                <span>{user.username}</span>
+                {userID == user.ID && 
+                <button onClick={() => {
+                    fetch("/api/logout", {
+                        method:"POST"
+                    }).then(res => {
+                        return res.json();
+                    }).then(data => {
+                        if(data.success) {
+                            socket.disconnect();
+                            navigation("/")
+                        }
+                    })
+                }}>Logout</button>
+                }
+                
+            </div>
+            <div>
+                <div>
+                    <img src={user.profile_image ? `/api/get_avatar_img/${user.ID}/${user.profile_image}` : noProfile} alt="" />
+                    {user.status === "online" ? <div></div>:<div></div>}
+                </div>
+                <div>
+                    <p>{user.username}</p>
+                    <p>{user.name} {user.surname}</p>
+                    <p>{user.profile_desc || `no description!`}</p>
+                </div>
+            </div>
+            <div>
+                {
+                    userID == user.ID ? <button onClick={() => setEditProfile(true)}>Edit profile</button> : <button>Follow</button>
+                }
+            </div>
+            <div>
+                {
+                    posts.map((element) => (<Post data={element}></Post>))
+                }
+                {
+                    loadStatus == "loading" ?
+                    <section>Loading</section>
+                   :
+                   loadStatus == "empty" ?
+                     userID == user.ID ? <span>You dont have any posts!</span>: user.protected === 1 ?
+                      <span>This account is protected</span>: <span>This account doesnt have any posts!</span>
+                     
+                     :<></>
+                }
+            </div>
+        </main>
+        {editProfile && 
+        <section>
+            <div>
+                <span>Edit profile</span>
+                <button onClick={() => setEditProfile(false)}>X</button>
+            </div>
+            <div>
+                <img src={user.profile_image ? `/api/get_avatar_img/${user.ID}/${user.profile_image}` : noProfile} alt="" />
+                <input type="file" accept="image/*"/>
+            </div>
+            <hr />
+        </section>
+        }
+        </section>
     )
 }
