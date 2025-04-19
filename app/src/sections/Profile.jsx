@@ -30,6 +30,20 @@ export default function Profile({socket, userID}) {
     }, []);
 
     const generatePosts = useCallback(() => {
+        if(userID == id) {
+            fetch(`/api/get_my_posts`).then(res => {
+                return res.json();
+            }).then(data => {
+                if(data.success) {
+                    setPosts(data.data)
+                    if(data.data.length == 0) {
+                        setLoadStatus("empty")
+                    } else {
+                        setLoadStatus("loaded")
+                    }
+                }
+            })
+        } else {
             fetch(`/api/get_user_posts/${id}`).then(res => {
                 return res.json();
             }).then(data => {
@@ -42,6 +56,7 @@ export default function Profile({socket, userID}) {
                     }
                 }
             })
+        }
         }, [])
     const saveChanges = useCallback(() => {
         const formData = new FormData();
@@ -127,6 +142,9 @@ export default function Profile({socket, userID}) {
                 <input type="file" accept="image/*" onChange={(e) => setChanges(prev => ({...prev, photo:e.target.files[0]}))}/>
             </div>
             <hr />
+            <div>
+                <textarea onChange={(e) => setChanges(prev => ({...prev, profile_desc:e.target.value}))}>{user.profile_desc}</textarea>
+            </div>
             <div>
                 <button onClick={saveChanges}>Save changes</button>
             </div>

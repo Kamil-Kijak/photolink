@@ -711,16 +711,16 @@ app.get("/api/get_user_posts/:ID", check_access, (req, res) => {
     }
 })
 
-// app.get("/api/get_my_posts", check_access, (req, res) => {
-//     connection.query("select p.send_date, p.title, p.text_body, p.edited, p.ID as 'postID', u.ID as 'userID', u.username, u.profile_image, u.status from user u inner join posts p on p.ID_user=u.ID where u.ID = ? order by p.send_date desc limit ?", [req.user, limit], (err, result) => {
-//         if(err) return res.status(500).json({ success:false, message:"database error"}); 
-//             res.status(200).json({
-//                 success:true,
-//                 message:"get success",
-//                 data:result
-//             })
-//     })
-// });
+app.get("/api/get_my_posts", check_access, (req, res) => {
+    connection.query("select p.send_date, p.title, p.text_body, p.edited, p.ID as 'postID', u.ID as 'userID', u.username, u.profile_image, u.status from user u inner join posts p on p.ID_user=u.ID where u.ID = ? order by p.send_date desc limit ?", [req.user, limit], (err, result) => {
+        if(err) return res.status(500).json({ success:false, message:"database error"}); 
+            res.status(200).json({
+                success:true,
+                message:"get success",
+                data:result
+            })
+    })
+});
 
 app.get("/api/get_for_you_posts/:limit", check_access, (req, res) => {
     const {limit} = req.params;
