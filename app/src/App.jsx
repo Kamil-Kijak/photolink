@@ -1,12 +1,16 @@
 
+import {BrowserRouter, Routes, Route} from "react-router-dom"
 
+import TitlePage from "./Sections/TitlePage"
 
 function App() {
 
   return (
-    <>
-    <h1>Hello world</h1>
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<TitlePage></TitlePage>}></Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
