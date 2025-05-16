@@ -1,25 +1,25 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 export function InputBox({title, type, placeholder, styles, regexp, error = "error", success = "success",
-     returnStatusCallback = (e) => {}, returnValueCallback}) {
+     returnValueCallback}) {
 
     const [status, SetStatus] = useState(0);
+    const [value, SetValue] = useState(null);
+    
+    useEffect(() => {
+        if(value === null) {
+            return;
+        }
+        let newStatus = regexp?.test(value) ? 1 : -1;
+        if (status !== newStatus) { 
+            SetStatus(newStatus);
+        }
+        returnValueCallback && returnValueCallback({ value, status: newStatus });
+    }, [regexp, value])
     const changeState = useCallback((e) => {
         const value = e.target.value;
-        if(regexp != null) {
-            if(regexp.test(value)) {
-                SetStatus(1);
-                returnStatusCallback(1);
-            } else {
-                SetStatus(-1);
-                returnStatusCallback(-1);
-            }
-        } else {
-            SetStatus(1);
-            returnStatusCallback(1);
-        }
-        returnValueCallback(value)
-    }, [regexp]);
+        SetValue(value);
+    }, []);
     return(
         <>
         <section className="w-full">
@@ -30,18 +30,26 @@ export function InputBox({title, type, placeholder, styles, regexp, error = "err
         </>
     )
 }
-export function InputSelect({title, placeholder, styles, optionDict: optionList}) {
-    
-
+export function InputSelect({title, placeholder, styles, optionDict: optionList, error = "error", success = "success", returnValueCallback
+}) {
+    const [status, SetStatus] = useState(0);
+    const changeState = useCallback((e) => {
+        const value = e.target.value;
+        let newStatus = value.length == 0 ? -1 : 1;
+        if(newStatus !== status) {
+            SetStatus(newStatus);
+        }
+        returnValueCallback && returnValueCallback({value:value, status:newStatus});
+    }, [])
     return(
         <>
         <section className="w-full">
             <p className="text-white font-black ml-1">{title}</p>
-            <select className={styles}>
+            <select className={styles} onClick={changeState}>
                 <option value="" selected className="hidden">{placeholder || "select option"}</option>
                 {[...optionList].map((element) => <option value={element.key} key={element.key}>{element.value}</option>)}
             </select>
-            <div className="h-[1.5em]"></div>
+            {status === 1 ? success : status === -1 ? error : <div className="h-[1.5em]"></div>}
         </section>
         </>
     )

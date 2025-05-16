@@ -18,15 +18,14 @@ export default function RegisterComponent({changeIsLoginStatus}) {
     const [countries, SetCountries] = useState([]);
 
     const [data, SetData] = useState({
-        "password": "",
-        "passwordRepeated":""
+        password:{value:"", status:0},
+        passwordRepeated:{value:"", status:0}
     });
     useEffect(() => {
         fetch("https://restcountries.com/v3.1/all").then(res => res.json()).then(data => {
             SetCountries(data.map((element) => ({"key":element.name.official, "value":element.name.common})).sort((a, b) => a.value.localeCompare(b.value)));
         });
     }, []);
-
 
     return (
         <>
@@ -40,6 +39,7 @@ export default function RegisterComponent({changeIsLoginStatus}) {
                  success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> correct username</p>}
                 error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> incorrect</p>}
                 regexp={/^\w{1,50}$/}
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, username: value }))}}
                  ></InputBox>
                  <InputBox
                  title={<><FontAwesomeIcon icon={faUser}></FontAwesomeIcon> name</>}
@@ -48,6 +48,7 @@ export default function RegisterComponent({changeIsLoginStatus}) {
                  success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> correct name</p>}
                 error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> only letters, starts with big</p>}
                 regexp={/^[A-Z][a-z]{0,50}$/}
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, name: value }))}}
                  ></InputBox>
                   <InputBox
                  title={<><FontAwesomeIcon icon={faUser}></FontAwesomeIcon> surname</>}
@@ -56,6 +57,7 @@ export default function RegisterComponent({changeIsLoginStatus}) {
                  success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> correct surname</p>}
                 error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> only letters, starts with big</p>}
                 regexp={/^[A-Z][a-z]{0,50}$/}
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, surname: value }))}}
                  ></InputBox>
                   <InputBox
                  title={<><FontAwesomeIcon icon={faBirthdayCake}></FontAwesomeIcon> birthdate</>}
@@ -64,19 +66,25 @@ export default function RegisterComponent({changeIsLoginStatus}) {
                  type={"date"}
                  success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> correct date</p>}
                 error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> incorect date</p>}
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, birthdate: value }))}}
                  ></InputBox>
                 <InputSelect
                 title={<><FontAwesomeIcon icon={faEarthEurope}></FontAwesomeIcon> country</>}
                 placeholder={"Select a country"}
                 styles={"bg-black font-bold text-white focus:bg-gray-900 px-2 py-3 rounded-md w-full"}
+                error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> select a country</p>}
+                success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> selected</p>}
                 optionDict={
                     countries
                 }
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, country: value }))}}
                 ></InputSelect>
                 <InputSelect
                 title={<><FontAwesomeIcon icon={faMarsAndVenus}></FontAwesomeIcon> gender</>}
                 placeholder={"Select a gender"}
                 styles={"bg-black font-bold text-white focus:bg-gray-900 px-2 py-3 rounded-md w-full"}
+                error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> select a gender</p>}
+                success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> selected</p>}
                 optionDict={
                     [
                         {"key":"Male", "value": "Male"},
@@ -84,6 +92,7 @@ export default function RegisterComponent({changeIsLoginStatus}) {
                         {"key":"Other", "value": "Other gender"}
                     ]
                 }
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, gender: value }))}}
                 ></InputSelect>
                 <InputBox
                  title={<><FontAwesomeIcon icon={faEnvelope}></FontAwesomeIcon> email adress</>}
@@ -91,8 +100,10 @@ export default function RegisterComponent({changeIsLoginStatus}) {
                  styles={"bg-black font-bold text-white focus:bg-gray-900 px-2 py-3 rounded-md w-full"}
                  type={"email"}
                  success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> correct adress</p>}
+                 
                 error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> invalid adress format</p>}
                 regexp={/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/}
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, email: value }))}}
                  ></InputBox>
                   <InputBox
                  title={<><FontAwesomeIcon icon={faLock}></FontAwesomeIcon> password</>}
@@ -112,7 +123,7 @@ export default function RegisterComponent({changeIsLoginStatus}) {
                  success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> passwords are the same</p>}
                 error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> passwords arent the same</p>}
                 returnValueCallback={(value) => {SetData(prev => ({ ...prev, passwordRepeated: value }))}}
-                regexp={data.password == data.passwordRepeated ? /^\w+$/ : /\w{1,1}$\w^/}
+                regexp={data.password.value == data.passwordRepeated.value ? /^\w+$/ : /\w{1,1}$\w^/}
                  ></InputBox>
             </section>
             <button className="w-auto mb-10 h-auto bg-blue-800 text-2xl text-white font-bold

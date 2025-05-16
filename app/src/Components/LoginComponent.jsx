@@ -7,9 +7,13 @@ import {faCircleExclamation} from "@fortawesome/free-solid-svg-icons"
 import {faCircleCheck} from "@fortawesome/free-solid-svg-icons"
 
 import {InputBox} from "../Elements/Input"
+import { useState } from "react"
 
 export default function LoginComponent({changeIsLoginStatus}) {
 
+    const [data, SetData] = useState({
+            
+    });
 
     return (
         <>
@@ -23,6 +27,7 @@ export default function LoginComponent({changeIsLoginStatus}) {
                 success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> correct</p>}
                 error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> incorrect</p>}
                 regexp={/^\w{1,50}$/}
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, username: value }))}}
                 ></InputBox>
                 <InputBox
                 title={<><FontAwesomeIcon icon={faLock}></FontAwesomeIcon> password</>}
@@ -32,6 +37,7 @@ export default function LoginComponent({changeIsLoginStatus}) {
                 success={<p className="text-green-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleCheck} /> correct</p>}
                 error={<p className="text-red-700 font-bold ml-1"><FontAwesomeIcon icon={faCircleExclamation} /> too short</p>}
                 regexp={/^\w{8,}$/}
+                returnValueCallback={(value) => {SetData(prev => ({ ...prev, username: value }))}}
                 ></InputBox>
             </section>
             <button className="w-auto mb-10 h-auto bg-blue-800 text-2xl text-white font-bold
